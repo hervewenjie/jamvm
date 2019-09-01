@@ -366,6 +366,7 @@ Class *defineClass(char *data, int offset, int len, Object *class_loader) {
     if(found != class)
         return found;
 
+    // resolve super class
     classblock->super = super_idx ? resolveClass(class, super_idx, FALSE) : NULL;
 
     if(exceptionOccured())
@@ -381,6 +382,60 @@ Class *defineClass(char *data, int offset, int len, Object *class_loader) {
     }
 
     return class;
+}
+
+Class *
+createArrayClass(char *classname, Object *class_loader) {
+    Class *class;
+    ClassBlock *classblock;
+    int len = strlen(classname);
+
+    if((class = allocClass()) == NULL)
+        return NULL;
+
+    classblock = CLASS_CB(class);
+
+    /* Set all fields to zero */
+    memset(classblock, 0, sizeof(ClassBlock));
+
+    classblock->name = strcpy((char*)malloc(len+1), classname);
+    classblock->super_name = "java/lang/Object";
+    classblock->super = findSystemClass("java/lang/Object");
+    classblock->method_table = CLASS_CB(classblock->super)->method_table;
+
+    classblock->interfaces_count = 2;
+    classblock->interfaces = (Class**)malloc(2*sizeof(Class*));
+    classblock->interfaces[0] = findSystemClass("java/lang/Cloneable");
+    classblock->interfaces[1] = findSystemClass("java/io/Serializable");
+
+    classblock->flags = CLASS_INTERNAL;
+
+    if(classname[len-1] == ';') {
+
+        /* Element type is an object rather than a primitive type -
+           find the element class and dimension and store in cb */
+
+        char buff[256];
+        char *ptr;
+        int dim;
+
+        /* Calculate dimension by counting the brackets */
+        for(ptr = classname; *ptr == '['; ptr++);
+        dim = ptr - classname;
+
+        strcpy(buff, &classname[dim+1]);
+        buff[len-dim-2] = '\0';
+
+        classblock->element_class = findClassFromClassLoader(buff, class_loader);
+        classblock->class_loader = CLASS_CB(classblock->element_class)->class_loader;
+        classblock->dim = dim;
+    }
+
+    if(java_lang_Class == NULL)
+        java_lang_Class = loadSystemClass("java/lang/Class");
+
+    class->class = java_lang_Class;
+    return addClassToHash(class);
 }
 
 // link class
@@ -661,13 +716,46 @@ Class *findSystemClass(char *classname) {
     return class;
 }
 
+Class *findArrayClassFromClassLoader(char *classname, Object *class_loader) {
+    Class *class = findHashedClass(classname, class_loader);
+
+    if(class == NULL)
+        class = createArrayClass(classname, class_loader);
+
+    return class;
+}
+
 void setException(Object *exp) {}
 
 void clearException() {}
 
 void printException() {}
 
-Class *findClassFromClassLoader(char *classname, Object *loader) {}
+// find class from classloader
+Class *findClassFromClassLoader(char *classname, Object *loader) {
+    if(*classname == '[')
+        return findArrayClassFromClassLoader(classname, loader);
+
+    // find with class loader
+    if(loader != NULL) {
+        Class *class;
+        char *dot_name = slash2dots(classname);
+        MethodBlock *mb = lookupMethod(loader->class,
+                                       "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+        Object *string = createString(dot_name);
+        free(dot_name);
+
+        class = *(Class**)executeMethod(loader, mb, string);
+
+        if(exceptionOccured())
+            return NULL;
+
+        return class;
+    }
+
+    // or just search for .class file
+    return findSystemClass0(classname);
+}
 
 int parseClassPath(char *cp_var) {
     char *cp, *pntr, *start;
@@ -717,3 +805,4 @@ void initialiseClass(int verboseclass) {
     verbose = verboseclass;
     initHashTable(loaded_classes, INITSZE);
 }
+

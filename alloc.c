@@ -167,6 +167,7 @@ Object *allocObject(Class *class) {}
 
 Object *allocArray(Class *class, int size, int el_size) {}
 
+
 int gc0() {}
 
 int gc1() {}
@@ -350,9 +351,105 @@ void *gcMalloc(int len) {
 
 void initialiseGC(int noasyncgc) {}
 
+Object *allocMultiArray(Class *array_class, int dim, int *count) {
+
+    int i;
+    Object *array;
+
+    if(dim > 1) {
+
+        Class *aclass = findArrayClassFromClass(CLASS_CB(array_class)->name+1, array_class);
+        array = allocArray(array_class, *count, 4);
+
+        if(array == NULL)
+            return NULL;
+
+        for(i = 1; i <= *count; i++)
+            INST_DATA(array)[i] = (u4)allocMultiArray(aclass, dim-1, count+1);
+    } else {
+        int el_size;
+
+        switch(CLASS_CB(array_class)->name[1]) {
+            case 'B':
+            case 'Z':
+                el_size = 1;
+                break;
+
+            case 'C':
+            case 'S':
+                el_size = 2;
+                break;
+
+            case 'I':
+            case 'F':
+            case 'L':
+                el_size = 4;
+                break;
+
+            default:
+                el_size = 8;
+                break;
+        }
+        array = allocArray(array_class, *count, el_size);
+    }
+
+    return array;
+}
+
 Class *allocClass() {
     // gc malloc
     Class *class = (Class*)gcMalloc(sizeof(ClassBlock)+sizeof(Class));
     TRACE_ALLOC(("<ALLOC: allocated class object @ 0x%x>\n", class));
     return class;
+}
+
+void markObject(Object *object) {}
+
+Object *allocTypeArray(int type, int size) {
+    Class *class;
+    int el_size;
+
+    switch(type) {
+        case T_BYTE:
+        case T_BOOLEAN:
+            class = findArrayClass("[B");
+            el_size = 1;
+            break;
+
+        case T_CHAR:
+            class = findArrayClass("[C");
+            el_size = 2;
+            break;
+
+        case T_SHORT:
+            class = findArrayClass("[S");
+            el_size = 2;
+            break;
+
+        case T_INT:
+            class = findArrayClass("[I");
+            el_size = 4;
+            break;
+
+        case T_FLOAT:
+            class = findArrayClass("[F");
+            el_size = 4;
+            break;
+
+        case T_DOUBLE:
+            class = findArrayClass("[D");
+            el_size = 8;
+            break;
+
+        case T_LONG:
+            class = findArrayClass("[J");
+            el_size = 8;
+            break;
+
+        default:
+            printf("Invalid array type %d - aborting VM...\n", type);
+            exit(0);
+    }
+
+    return allocArray(class, size, el_size);
 }

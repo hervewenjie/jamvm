@@ -29,6 +29,10 @@ static HashTable hash_table;
         c = x;                                        \
 }
 
+void convertUtf8(unsigned char *utf8, short *buff) {
+    while(*utf8)
+    GET_UTF8_CHAR(utf8, *buff++);
+}
 
 int utf8Hash(unsigned char *utf8) {
     int hash = 0;
@@ -67,4 +71,29 @@ unsigned char *findUtf8String(unsigned char *string) {
 
 void initialiseUtf8() {
     initHashTable(hash_table, HASHTABSZE);
+}
+
+int utf8Len(unsigned char *utf8) {
+    int count;
+
+    for(count = 0; *utf8; count++) {
+        int x = *utf8;
+        utf8 += (x & 0x80) ? ((x & 0x20) ?  3 : 2) : 1;
+    }
+
+    return count;
+}
+
+unsigned char *slash2dots(unsigned char *utf8) {
+    int len = utf8Len(utf8);
+    unsigned char *conv = (unsigned char*)malloc(len+1);
+    int i;
+
+    for(i = 0; i <= len; i++)
+        if(utf8[i] == '/')
+            conv[i] = '.';
+        else
+            conv[i] = utf8[i];
+
+    return conv;
 }

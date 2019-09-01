@@ -289,7 +289,7 @@ typedef unsigned short		u2;
 typedef unsigned int		u4;
 typedef unsigned long long	u8;
 
-typedef u4 ConstantPoolEntry;
+typedef u8 ConstantPoolEntry;
 
 typedef struct constant_pool {
     volatile u1 *type;        // type list
@@ -434,23 +434,39 @@ extern void initialiseGC(int noasyncgc);
 extern void initialiseJNI();
 extern Class *allocClass();
 extern Object *allocObject(Class *class);
+extern Object *allocTypeArray(int type, int size);
 extern Object *allocArray(Class *class, int size, int el_size);
+extern Object *allocMultiArray(Class *array_class, int dim, int *count);
 
 /* Class */
 extern Class *java_lang_Class;
+
 extern Class *defineClass(char *data, int offset, int len, Object *class_loader);
 extern Class *initClass(Class *class);
 extern Class *findSystemClass(char *);
 extern Class *findSystemClass0(char *);
+extern Class *loadSystemClass(char *);
+
+extern Class *findArrayClassFromClassLoader(char *, Object *);
+#define findArrayClassFromClass(name, class) \
+                    findArrayClassFromClassLoader(name, CLASS_CB(class)->class_loader)
+#define findArrayClass(name) findArrayClassFromClassLoader(name, NULL)
+
 extern Class *findClassFromClassLoader(char *, Object *);
 #define findClassFromClass(name, class) \
                     findClassFromClassLoader(name, CLASS_CB(class)->class_loader)
+
 extern void initialiseClass(int verbose);
 
 /* From jam - should be resolve? */
+extern FieldBlock *findField(Class *, char *, char *);
 extern MethodBlock *findMethod(Class *class, char *methodname, char *type);
+extern FieldBlock *lookupField(Class *, char *, char *);
 extern MethodBlock *lookupMethod(Class *class, char *methodname, char *type);
 extern Class *resolveClass(Class *class, int index, int init);
+extern MethodBlock *resolveMethod(Class *class, int index);
+extern MethodBlock *resolveInterfaceMethod(Class *class, int index);
+extern FieldBlock *resolveField(Class *class, int index);
 extern char isInstanceOf(Class *class, Class *test);
 
 /* From jam - should be execute? */
@@ -471,12 +487,17 @@ extern void printException();
 /* String */
 extern Object *Cstr2String(char *cstr);
 extern void initialiseString();
+extern Object *createString(unsigned char *utf8);
 
 /* Utf8 */
-extern void initialiseUtf8();
+extern int utf8Len(unsigned char *utf8);
 extern unsigned char *findUtf8String(unsigned char *string);
 extern int utf8Comp(unsigned char *ptr, unsigned char *ptr2);
 extern int utf8Hash(unsigned char *utf8);
+extern unsigned char *slash2dots(unsigned char *utf8);
+extern void initialiseUtf8();
+extern void convertUtf8(unsigned char *utf8, short *buff);
+
 
 /* Dll */
 extern u4 *resolveNativeWrapper(Class *class, MethodBlock *mb, u4 *ostack);
