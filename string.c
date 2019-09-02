@@ -56,6 +56,40 @@ void initialiseString() {
     }
 }
 
+int stringHash(Object *ptr) {
+    Object *array = (Object*)INST_DATA(ptr)[value_offset];
+    int len = INST_DATA(ptr)[count_offset];
+    int offset = INST_DATA(ptr)[offset_offset];
+    short *dpntr = ((short*)INST_DATA(array))+offset+2;
+    int hash = 0;
+
+    for(; len > 0; len--)
+        hash = hash * 37 + *dpntr++;
+
+    return hash;
+}
+
+int stringComp(Object *ptr, Object *ptr2) {
+    int len = INST_DATA(ptr)[count_offset];
+    int len2 = INST_DATA(ptr2)[count_offset];
+
+    if(len == len2) {
+        Object *array = (Object*)INST_DATA(ptr)[value_offset];
+        Object *array2 = (Object*)INST_DATA(ptr2)[value_offset];
+        int offset = INST_DATA(ptr)[offset_offset];
+        int offset2 = INST_DATA(ptr2)[offset_offset];
+        short *src = ((short*)INST_DATA(array))+offset+2;
+        short *dst = ((short*)INST_DATA(array2))+offset2+2;
+
+        for(; (len > 0) && (*src++ == *dst++); len--);
+
+        if(len == 0)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 Object *createString(unsigned char *utf8) {
     int len = utf8Len(utf8);
     Object *array;
@@ -76,4 +110,12 @@ Object *createString(unsigned char *utf8) {
     INST_DATA(ob)[value_offset] = (u4)array;
 
     return ob;
+}
+
+Object *findInternedString(Object *string) {
+    Object *interned;
+
+    findHashEntry(hash_table, string, interned, TRUE, FALSE);
+
+    return interned;
 }

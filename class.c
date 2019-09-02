@@ -120,6 +120,7 @@ Class *defineClass(char *data, int offset, int len, Object *class_loader) {
     for(i = 1; i < cp_count; i++) {
         u1 tag;
 
+
         READ_U1(tag, ptr, len);
         CP_TYPE(constant_pool,i) = tag; // did store tag
 

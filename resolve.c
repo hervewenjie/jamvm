@@ -5,7 +5,20 @@
 #include <string.h>
 #include "jam.h"
 
-MethodBlock *findMethod(Class *class, char *methodname, char *type) {}
+/* A class can't have two fields with the same name but different types -
+   so we give up if we find a field with the right name but wrong type...
+*/
+MethodBlock *findMethod(Class *class, char *methodname, char *type) {
+    ClassBlock *cb = CLASS_CB(class);
+    MethodBlock *mb = cb->methods;
+    int i;
+
+    for(i = 0; i < cb->methods_count; i++,mb++)
+        if((strcmp(mb->name, methodname) == 0) && (strcmp(mb->type, type) == 0))
+            return mb;
+
+    return NULL;
+}
 
 // A class can't have two fields with the same name but different types -
 // so we give up if we find a field with the right name but wrong type...
@@ -25,7 +38,17 @@ FieldBlock *findField(Class *class, char *fieldname, char *type) {
     return NULL;
 }
 
-MethodBlock *lookupMethod(Class *class, char *methodname, char *type) { return NULL; }
+MethodBlock *lookupMethod(Class *class, char *methodname, char *type) {
+    MethodBlock *mb;
+
+    if(mb = findMethod(class, methodname, type))
+        return mb;
+
+    if (CLASS_CB(class)->super)
+        return lookupMethod(CLASS_CB(class)->super, methodname, type);
+
+    return NULL;
+}
 
 FieldBlock *lookupField(Class *class, char *fieldname, char *type) {
     FieldBlock *fb;
@@ -215,4 +238,32 @@ FieldBlock *resolveField(Class *class, int cp_index) {
     }
 
     return fb;
+}
+
+u4 resolveSingleConstant(Class *class, int cp_index) {
+    ConstantPool *cp = &(CLASS_CB(class)->constant_pool);
+
+    retry:
+    switch(CP_TYPE(cp, cp_index)) {
+        case CONSTANT_Locked:
+            goto retry;
+
+        case CONSTANT_String: {
+            Object *string;
+            int idx = CP_STRING(cp, cp_index);
+            if(CP_TYPE(cp, cp_index) != CONSTANT_String)
+                goto retry;
+
+            string = createString(CP_UTF8(cp, idx));
+            CP_TYPE(cp, cp_index) = CONSTANT_Locked;
+            CP_INFO(cp, cp_index) = (u4)findInternedString(string);
+            CP_TYPE(cp, cp_index) = CONSTANT_Resolved;
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    return CP_INFO(cp, cp_index);
 }

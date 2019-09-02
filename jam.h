@@ -467,10 +467,13 @@ extern Class *resolveClass(Class *class, int index, int init);
 extern MethodBlock *resolveMethod(Class *class, int index);
 extern MethodBlock *resolveInterfaceMethod(Class *class, int index);
 extern FieldBlock *resolveField(Class *class, int index);
+extern u4 resolveSingleConstant(Class *class, int cp_index);
 extern char isInstanceOf(Class *class, Class *test);
 
 /* From jam - should be execute? */
 extern void *executeMethodArgs(Object *ob, Class *class, MethodBlock *mb, ...);
+extern void *executeMethodVaList(Object *ob, Class *class, MethodBlock *mb, va_list args);
+extern void *executeMethodList(Object *ob, Class *class, MethodBlock *mb, u8 *args);
 #define executeMethod(ob, mb, args...) \
     executeMethodArgs(ob, ob->class, mb, ##args)
 #define executeStaticMethod(clazz, mb, args...) \
@@ -482,9 +485,15 @@ extern void signalException(char *excep_name, char *excep_mess);
 extern void setException(Object *excep);
 extern void clearException();
 extern void printException();
+extern unsigned char *findCatchBlock(Class *exception);
+#define exceptionOccured0(ee) \
+    ee->exception
 
 /* interp */
+extern u4 *executeJava();
+
 /* String */
+extern Object *findInternedString(Object *string);
 extern Object *Cstr2String(char *cstr);
 extern void initialiseString();
 extern Object *createString(unsigned char *utf8);
@@ -504,6 +513,8 @@ extern u4 *resolveNativeWrapper(Class *class, MethodBlock *mb, u4 *ostack);
 
 /* Threading */
 extern void initialiseMainThread(int java_stack);
+extern ExecEnv *getExecEnv();
+
 extern void mainThreadWaitToExitVM();
 
 /* Monitors */
