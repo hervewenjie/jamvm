@@ -139,7 +139,7 @@ Class *defineClass(char *data, int offset, int len, Object *class_loader) {
 
                 READ_INDEX(idx1, ptr, len);
                 READ_INDEX(idx2, ptr, len);
-                CP_INFO(constant_pool,i) = (idx2<<16)+idx1;
+                CP_INFO(constant_pool,i) = (u8)((idx2<<16)+idx1);
                 break;
             }
 
@@ -552,6 +552,7 @@ void linkClass(Class *class) {
     cb->flags = CLASS_LINKED;
 }
 
+// call class static init
 Class *initClass(Class *class) {
     ClassBlock *cb = CLASS_CB(class);
     FieldBlock *fb = cb->fields;

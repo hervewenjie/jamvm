@@ -136,9 +136,11 @@ MethodBlock *resolveMethod(Class *class, int cp_index) {
 
             mb = lookupMethod(resolved_class, methodname, methodtype);
 
+            // store method block pointer in constant pool
+            // mark type as resolved
             if(mb) {
                 CP_TYPE(cp, cp_index) = CONSTANT_Locked;
-                CP_INFO(cp, cp_index) = (u4)mb;
+                CP_INFO(cp, cp_index) = (u8)mb;
                 CP_TYPE(cp, cp_index) = CONSTANT_Resolved;
             } else
                 signalException("java/lang/NoSuchMethodError", methodname);

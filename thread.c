@@ -115,7 +115,8 @@ ExecEnv *getExecEnv() {
 }
 
 void initialiseJavaStack(ExecEnv *ee) {
-    char *stack = malloc(java_stack_size);
+    printf("%d\n", java_stack_size);
+    char *stack = (char *)malloc(java_stack_size);
     MethodBlock *mb = (MethodBlock *) stack;
     Frame *top = (Frame *) (mb+1);
 

@@ -1264,13 +1264,18 @@ u4 *executeJava() {
                 if(exceptionOccured0(ee))
                     goto throwException;
 
+                // rewrite
                 OPCODE_REWRITE(pc, OPC_INVOKESTATIC_QUICK);
                 DISPATCH(pc)
 
             DEF_OPC(OPC_INVOKESTATIC_QUICK)
-                new_mb = (MethodBlock *)CP_INFO(cp, CP_DINDEX(pc));
-                arg1 = ostack - new_mb->args_count;
-                goto invokeMethod;
+                {
+                    u8 index_tmp = CP_DINDEX(pc);
+                    // already resolved as MethodBlock pointer?
+                    new_mb = (MethodBlock *)CP_INFO(cp, index_tmp);
+                    arg1 = ostack - new_mb->args_count;
+                    goto invokeMethod;
+                }
 
             DEF_OPC(OPC_INVOKEINTERFACE)
                 frame->last_pc = (unsigned char*)pc;

@@ -14,9 +14,7 @@ static int verboseclass = FALSE;
 #define MIN_HEAP 4*KB
 #define MIN_STACK 2*KB
 
-static int java_stack = 64*KB;
-//static int min_heap   = 256*KB;
-//static int max_heap   = 16*MB;
+static int java_stack = 128*KB;
 
 static int min_heap   = 512*MB;
 static int max_heap   = 1024*MB;
